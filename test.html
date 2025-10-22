@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Outreach Cloud – Test</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 24px; max-width: 680px; margin: auto; }
+      code, pre { background:#f5f5f5; padding:8px; border-radius:8px; display:block; }
+      button { padding:10px 14px; border-radius:8px; border:1px solid #ddd; cursor:pointer; }
+      .row { display:flex; gap:12px; align-items:center; margin:12px 0; }
+      input, textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; }
+      label { font-size:14px; color:#333; }
+    </style>
+  </head>
+  <body>
+    <h1>Outreach Cloud – בדיקות API</h1>
+
+    <h3>1) בדיקת echo (מאבחן method + גוף)</h3>
+    <div class="row">
+      <button id="btnEcho">שלח POST ל־/api/echo</button>
+    </div>
+    <pre id="echoOut">...</pre>
+
+    <hr/>
+
+    <h3>2) שליחת מייל בדיקה ל־/api/sendEmail</h3>
+    <div class="row"><label>To</label></div>
+    <div class="row"><input id="to" placeholder="your_email@gmail.com" /></div>
+    <div class="row"><label>Subject</label></div>
+    <div class="row"><input id="subject" value="Test from Outreach Cloud" /></div>
+    <div class="row"><label>Text</label></div>
+    <div class="row"><textarea id="text" rows="4">Hello from Buddy Ram!</textarea></div>
+    <div class="row">
+      <button id="btnSend">שלח מייל</button>
+    </div>
+    <pre id="sendOut">...</pre>
+
+    <script>
+      const base = location.origin; // ה-Production URL שלך אוטומטית
+      const jsonHeaders = { "Content-Type": "application/json" };
+
+      document.getElementById("btnEcho").onclick = async () => {
+        try {
+          const r = await fetch(base + "/api/echo", {
+            method: "POST",
+            headers: jsonHeaders,
+            body: JSON.stringify({ hello: "world" })
+          });
+        const t = await r.text();
+        document.getElementById("echoOut").textContent = t;
+        } catch (e) {
+          document.getElementById("echoOut").textContent = String(e);
+        }
+      };
+
+      document.getElementById("btnSend").onclick = async () => {
+        const to = document.getElementById("to").value.trim();
+        const subject = document.getElementById("subject").value.trim();
+        const text = document.getElementById("text").value.trim();
+        try {
+          const r = await fetch(base + "/api/sendEmail", {
+            method: "POST",
+            headers: jsonHeaders,
+            body: JSON.stringify({ to, subject, text })
+          });
+          const t = await r.text();
+          document.getElementById("sendOut").textContent = t;
+        } catch (e) {
+          document.getElementById("sendOut").textContent = String(e);
+        }
+      };
+    </script>
+  </body>
+</html>
