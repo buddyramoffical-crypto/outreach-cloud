@@ -1,26 +1,33 @@
-// api/sendEmail.js (CommonJS for Vercel Functions)
 const sgMail = require("@sendgrid/mail");
 
-// guard: missing envs
-if (!process.env.SENDGRID_API_KEY || !process.env.MAIL_FROM) {
-  console.warn("Missing SENDGRID_API_KEY or MAIL_FROM env");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+
+function setCors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
 module.exports = async (req, res) => {
-  try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
+  setCors(res);
 
-    // parse body safely
+  // לטפל ב-OPTIONS (preflight) כדי שלא יחזור 405
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed", got: req.method });
+  }
+
+  try {
+    // לקרוא גוף בבטחה
     let body = req.body;
     if (!body || typeof body === "string") {
       try { body = JSON.parse(body || "{}"); } catch (_) { body = {}; }
     }
 
-    const { to, subject, text } = body;
+    const { to, subject, text } = body || {};
     if (!to || !subject || !text) {
       return res.status(400).json({ error: "Missing parameters: to, subject, text" });
     }
@@ -34,7 +41,8 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error("sendEmail error:", err?.response?.body || err?.message || err);
+    const msg = err?.response?.body || err?.message || String(err);
+    console.error("sendEmail error:", msg);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
