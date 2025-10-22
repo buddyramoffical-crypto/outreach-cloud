@@ -1,28 +1,40 @@
-import sendgrid from "@sendgrid/mail";
+// api/sendEmail.js (CommonJS for Vercel Functions)
+const sgMail = require("@sendgrid/mail");
 
-sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
+// guard: missing envs
+if (!process.env.SENDGRID_API_KEY || !process.env.MAIL_FROM) {
+  console.warn("Missing SENDGRID_API_KEY or MAIL_FROM env");
+}
 
-export default async function handler(req, res) {
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+module.exports = async (req, res) => {
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    const { to, subject, text } = req.body;
-    if (!to || !subject || !text) {
-      return res.status(400).json({ error: "Missing parameters" });
+    // parse body safely
+    let body = req.body;
+    if (!body || typeof body === "string") {
+      try { body = JSON.parse(body || "{}"); } catch (_) { body = {}; }
     }
 
-    await sendgrid.send({
+    const { to, subject, text } = body;
+    if (!to || !subject || !text) {
+      return res.status(400).json({ error: "Missing parameters: to, subject, text" });
+    }
+
+    await sgMail.send({
       to,
-      from: process.env.MAIL_FROM,
+      from: { email: process.env.MAIL_FROM },
       subject,
-      text,
+      text
     });
 
-    res.status(200).json({ success: true });
+    return res.status(200).json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("sendEmail error:", err?.response?.body || err?.message || err);
+    return res.status(500).json({ error: "Internal server error" });
   }
-}
+};
